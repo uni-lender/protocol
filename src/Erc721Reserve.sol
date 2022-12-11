@@ -24,17 +24,30 @@ contract Erc721Reserve is ERC721, ERC721Enumerable, IERC721Receiver, Ownable {
     }
 
     function supply(uint256 tokenId) external returns (uint256) {
-        console.log("underlying:", underlying);
-        console.log("tokenId:", tokenId);
-        console.log("msg.sender:", msg.sender);
-        console.log("sender's balance:", IERC721(underlying).balanceOf(msg.sender));
-        console.log("token's owner:", IERC721(underlying).ownerOf(1));
-        IERC721(underlying).safeTransferFrom(msg.sender, address(this), tokenId);
+        IERC721(underlying).safeTransferFrom(
+            msg.sender,
+            address(this),
+            tokenId
+        );
+        _safeMint(msg.sender, tokenId);
 
         return 0;
     }
 
-    function withdraw(uint256 tokenId) external returns (uint256) {}
+    function withdraw(uint256 tokenId) external returns (uint256) {
+        require(
+            ownerOf(tokenId) == msg.sender,
+            "Erc721Reserve: reserve token transfer from incorrect owner"
+        );
+        _burn(tokenId);
+        IERC721(underlying).safeTransferFrom(
+            address(this),
+            msg.sender,
+            tokenId
+        );
+
+        return 0;
+    }
 
     function onERC721Received(
         address operator,

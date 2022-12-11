@@ -36,11 +36,28 @@ contract Erc721ReserveTest is Test {
     }
 
     function testSupply() public {
-        console.log(alice);
+        assertEq(mockNFT.balanceOf(alice), 4);
+        uint256 tokenId = 1;
         vm.startPrank(alice);
-        mockNFT.approve(address(reserve), 1);
-        reserve.supply(1);
+        mockNFT.approve(address(reserve), tokenId);
+        reserve.supply(tokenId);
         vm.stopPrank();
-        assertEq(true, true);
+        assertEq(mockNFT.balanceOf(alice), 3);
+        assertEq(mockNFT.ownerOf(tokenId), address(reserve));
+        assertEq(reserve.balanceOf(alice), 1);
+        assertEq(reserve.ownerOf(tokenId), alice);
+    }
+
+    function testWithdraw() public {
+        uint256 tokenId = 1;
+        vm.startPrank(alice);
+        mockNFT.approve(address(reserve), tokenId);
+        reserve.supply(tokenId);
+        reserve.withdraw(tokenId);
+        vm.stopPrank();
+        assertEq(mockNFT.balanceOf(alice), 4);
+        assertEq(mockNFT.ownerOf(tokenId), alice);
+        assertEq(reserve.balanceOf(alice), 0);
+        /* assertEq(reserve.ownerOf(tokenId), address(0)); */
     }
 }
