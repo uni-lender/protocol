@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "forge-std/console.sol";
 
-contract Erc721Reserve is ERC721, ERC721Enumerable, IERC721Receiver, Ownable {
+contract ERC721Reserve is ERC721, ERC721Enumerable, IERC721Receiver, Ownable {
     /**
      * @notice Underlying asset for this Reserve
      */
@@ -37,7 +37,7 @@ contract Erc721Reserve is ERC721, ERC721Enumerable, IERC721Receiver, Ownable {
     function withdraw(uint256 tokenId) external returns (uint256) {
         require(
             ownerOf(tokenId) == msg.sender,
-            "Erc721Reserve: reserve token transfer from incorrect owner"
+            "ERC721Reserve: reserve token transfer from incorrect owner"
         );
         _burn(tokenId);
         IERC721(underlying).safeTransferFrom(
