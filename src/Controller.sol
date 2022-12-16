@@ -4,20 +4,22 @@ pragma solidity ^0.8.13;
 import "./Oracle.sol";
 import {IReserve, IBorrowable} from "./IReserve.sol";
 
+import "forge-std/console.sol";
+
 contract Controller {
     Oracle public oracle;
     uint256 public closeFactorMantissa;
     uint256 public liquidationIncentiveMantissa;
-    // Mapping from owner to list of owned token IDs
-    /* mapping(address => mapping(uint256 => uint256)) private _ownedTokens; */
-    struct Market {
-        bool isListed;
-        uint256 collateralFactorMantissa;
-    }
     // Mapping from reserve to market metadata.
-    mapping(address => Market) public markets;
+    /* mapping(address => Market) public markets; */
     address[] public lendingMarkets;
     address[] public borrowMarkets;
+
+    constructor(
+        address oracle_
+    ) {
+        oracle = Oracle(oracle_);
+    }
 
     function supplyAllowed(
         address reserve,
@@ -35,10 +37,19 @@ contract Controller {
         address redeemer,
         uint256 redeemAmount
     ) external view returns (bool) {
-        reserve;
-        redeemer;
-        redeemAmount;
-        return true;
+        uint256 priceMantissa = getUnderlyingPrice(reserve);
+        uint256 redeemEffects = redeemAmount * priceMantissa / 1e18;
+        uint256 liquidity = getAccountLiquidity(redeemer);
+
+        console.log("priceMantissa:", priceMantissa);
+        console.log("redeemEffects:", redeemEffects);
+        console.log("liquidity:", liquidity);
+
+        if (redeemEffects < liquidity) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     function borrowAllowed(
@@ -46,8 +57,19 @@ contract Controller {
         address borrower,
         uint256 borrowAmount
     ) external view returns (bool) {
+        uint256 priceMantissa = getUnderlyingPrice(reserve);
+        uint256 borrowEffects = borrowAmount * priceMantissa / 1e18;
+        uint256 liquidity = getAccountLiquidity(borrower);
 
-        return true;
+        console.log("priceMantissa:", priceMantissa);
+        console.log("borrowEffects:", borrowEffects);
+        console.log("liquidity:", liquidity);
+
+        if (borrowEffects < liquidity) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     function repayAllowed(
@@ -55,6 +77,9 @@ contract Controller {
         address repayer,
         uint256 repayAmount
     ) external view returns (bool) {
+        reserve;
+        repayer;
+        repayAmount;
         return true;
     }
 

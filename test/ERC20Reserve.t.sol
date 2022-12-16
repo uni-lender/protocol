@@ -4,18 +4,7 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "../src/ERC20Reserve.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-contract MockERC20 is ERC20 {
-    constructor(
-        string memory name_,
-        string memory symbol_
-    ) ERC20(name_, symbol_) {}
-
-    function mint(address to, uint256 amount) public {
-        _mint(to, amount);
-    }
-}
+import {MockERC20} from "./Mock.t.sol";
 
 contract ERC20ReserveTest is Test {
     address public alice;

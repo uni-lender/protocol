@@ -57,8 +57,11 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         address account,
         uint256 underlyingPrice
     ) external view returns (uint256) {
-        account;
-        return 0;
+        uint256 balance = balanceOf(account);
+        console.log("account:", account);
+        console.log("balance:", balance);
+        console.log("price:", underlyingPrice);
+        return balance * underlyingPrice / 1e18;
     }
 
     function accountBorrowing(
