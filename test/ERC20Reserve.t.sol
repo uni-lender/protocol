@@ -30,11 +30,11 @@ contract ERC20ReserveTest is Test {
         assertEq(reserve.balanceOf(alice), 1e18);
     }
 
-    function testWithdraw() public {
+    function testRedeem() public {
         vm.startPrank(alice);
         underlying.approve(address(reserve), 1e20);
         reserve.supply(1e18);
-        reserve.withdraw(5e17);
+        reserve.redeem(5e17);
         vm.stopPrank();
         assertEq(underlying.balanceOf(alice), 995e17);
         assertEq(reserve.balanceOf(alice), 5e17);

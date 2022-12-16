@@ -38,7 +38,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         return 0;
     }
 
-    function withdraw(uint256 amount) external returns (uint256) {
+    function redeem(uint256 amount) external returns (uint256) {
         require(
             balanceOf(msg.sender) >= amount,
             "ERC20Reserve: transfer amount exceeds balance"

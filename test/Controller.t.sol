@@ -60,7 +60,7 @@ contract ControllerTest is Test {
         vm.startPrank(alice);
         weth.approve(address(wethReserve), 1e20);
         wethReserve.supply(1e18);
-        wethReserve.withdraw(5e17);
+        wethReserve.redeem(5e17);
         vm.stopPrank();
         assertEq(weth.balanceOf(alice), 995e17);
         assertEq(wethReserve.balanceOf(alice), 5e17);
