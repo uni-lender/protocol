@@ -54,6 +54,7 @@ contract DeployScript is Script {
 
         // list market
         controller.listLendingMarket(address(wethReserve));
+        controller.listLendingMarket(address(univ3Reserve));
         controller.listBorrowingMarket(address(wethReserve));
 
         // init oracle

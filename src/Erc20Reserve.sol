@@ -17,7 +17,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     // Protocol controller
     Controller public controller;
     // Mapping from account address to outstanding borrow balances 
-    mapping(address => uint256) private accountBorrows;
+    mapping(address => uint256) public accountBorrows;
 
     constructor(
         string memory name_,
