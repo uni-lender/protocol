@@ -49,26 +49,46 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         return 0;
     }
 
-    function redeem(uint256 amount) external returns (uint256) {
+    function withdrawAllowed(address account, uint256 amount) public {
+        uint256 priceMantissa = getUnderlyingPrice();
+        uint256 redeemEffects = (amount * priceMantissa) / 1e18;
+        uint256 liquidity = controller.getAccountLiquidity(account);
+        console.log("priceMantissa:", priceMantissa);
+        console.log("redeemEffects:", redeemEffects);
+        console.log("liquidity:", liquidity);
         require(
-            controller.redeemAllowed(address(this), msg.sender, amount),
-            "ERC20Reserve: redeemption is not allowed"
+            redeemEffects < liquidity,
+            "ERC20Reserve: insufficient liquidity"
         );
         require(
-            balanceOf(msg.sender) >= amount,
+            balanceOf(account) >= amount,
             "ERC20Reserve: redeem transfer amount exceeds position"
         );
+    }
+
+    function withdraw(uint256 amount) external returns (uint256) {
+        withdrawAllowed(msg.sender, amount);
         _burn(msg.sender, amount);
         IERC20(underlying).safeTransfer(msg.sender, amount);
 
         return 0;
     }
 
-    function borrow(uint256 amount) external returns (uint256) {
+    function borrowAllowed(address account, uint256 amount) public {
+        uint256 priceMantissa = getUnderlyingPrice();
+        uint256 borrowEffects = (amount * priceMantissa) / 1e18;
+        uint256 liquidity = controller.getAccountLiquidity(account);
+        console.log("priceMantissa:", priceMantissa);
+        console.log("borrowEffects:", borrowEffects);
+        console.log("liquidity:", liquidity);
         require(
-            controller.borrowAllowed(address(this), msg.sender, amount),
-            "ERC20Reserve: borrowing is not allowed"
+            borrowEffects < liquidity,
+            "ERC20Reserve: insufficient liquidity"
         );
+    }
+
+    function borrow(uint256 amount) external returns (uint256) {
+        borrowAllowed(msg.sender, amount);
         accountBorrows[msg.sender] += amount;
         IERC20(underlying).safeTransfer(msg.sender, amount);
 
@@ -76,10 +96,6 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     }
 
     function repay(uint256 amount) external returns (uint256) {
-        require(
-            controller.repayAllowed(address(this), msg.sender, amount),
-            "ERC20Reserve: repayment is not allowed"
-        );
         uint256 borrowBalance = accountBorrows[msg.sender];
         require(
             amount <= borrowBalance,
@@ -95,23 +111,25 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         return underlying;
     }
 
-    function accountCollateral(
-        address account,
-        uint256 underlyingPrice
-    ) external view returns (uint256) {
-        uint256 balance = balanceOf(account);
-        console.log("account:", account);
-        console.log("balance:", balance);
-        console.log("price:", underlyingPrice);
-        return (balance * underlyingPrice) / 1e18;
+    function getUnderlyingPrice() public view returns (uint256) {
+        return oracle.getPrice(underlying);
     }
 
-    function accountBorrowing(
-        address account,
-        uint256 underlyingPrice
+    function accountCollateral(
+        address account
     ) external view returns (uint256) {
+        uint256 balance = balanceOf(account);
+        uint256 underlyingPriceMantissa = getUnderlyingPrice();
+        console.log("account:", account);
+        console.log("balance:", balance);
+        console.log("price:", underlyingPriceMantissa);
+        return (balance * underlyingPriceMantissa) / 1e18;
+    }
+
+    function accountBorrowing(address account) external view returns (uint256) {
         uint256 borrowBalance = accountBorrows[account];
-        return (borrowBalance * underlyingPrice) / 1e18;
+        uint256 underlyingPriceMantissa = getUnderlyingPrice();
+        return (borrowBalance * underlyingPriceMantissa) / 1e18;
     }
 
     /**

@@ -69,22 +69,17 @@ contract ControllerTest is Test {
         oracle.setPrice(address(univ3), 1e18);
     }
 
-    function testRedeemAllowed() public {
+    function testWithdrawAllowed() public {
         vm.startPrank(alice);
         weth.approve(address(wethReserve), 1e20);
         wethReserve.supply(1e18);
-        wethReserve.redeem(5e17);
+        wethReserve.withdraw(5e17);
         vm.stopPrank();
         assertEq(weth.balanceOf(alice), 995e17);
         assertEq(wethReserve.balanceOf(alice), 5e17);
-        assertEq(
-            controller.redeemAllowed(address(wethReserve), alice, 1e10),
-            true
-        );
-        assertEq(
-            controller.redeemAllowed(address(wethReserve), alice, 1e18),
-            false
-        );
+        wethReserve.withdrawAllowed(alice, 1e10);
+        vm.expectRevert("ERC20Reserve: insufficient liquidity");
+        wethReserve.withdrawAllowed(alice, 1e18);
     }
 
     function testBorrowAllowed() public {
@@ -94,14 +89,9 @@ contract ControllerTest is Test {
         vm.stopPrank();
         assertEq(weth.balanceOf(alice), 99e18);
         assertEq(wethReserve.balanceOf(alice), 1e18);
-        assertEq(
-            controller.borrowAllowed(address(wethReserve), alice, 1e10),
-            true
-        );
-        assertEq(
-            controller.redeemAllowed(address(wethReserve), alice, 1e18),
-            false
-        );
+        wethReserve.borrowAllowed(alice, 1e10);
+        vm.expectRevert("ERC20Reserve: insufficient liquidity");
+        wethReserve.borrowAllowed(alice, 1e18);
     }
 
     function testSupply() public {
@@ -115,11 +105,11 @@ contract ControllerTest is Test {
         assertEq(wethReserve.balanceOf(alice), 1e18);
     }
 
-    function testRedeem() public {
+    function testWithdraw() public {
         vm.startPrank(alice);
         weth.approve(address(wethReserve), 1e20);
         wethReserve.supply(1e18);
-        wethReserve.redeem(5e17);
+        wethReserve.withdraw(5e17);
         vm.stopPrank();
         assertEq(weth.balanceOf(alice), 995e17);
         assertEq(wethReserve.balanceOf(alice), 5e17);
@@ -141,8 +131,8 @@ contract ControllerTest is Test {
         assertEq(weth.balanceOf(bob), 91e18);
         assertEq(wethReserve.balanceOf(alice), 1e18);
         assertEq(wethReserve.balanceOf(bob), 1e19);
-        assertEq(wethReserve.accountCollateral(bob, 1e18), 1e19);
-        assertEq(wethReserve.accountBorrowing(bob, 1e18), 1e18);
+        assertEq(wethReserve.accountCollateral(bob), 1e19);
+        assertEq(wethReserve.accountBorrowing(bob), 1e18);
 
         uint256 tokenId = 4;
         univ3.mint(charlie, 4);
@@ -157,7 +147,7 @@ contract ControllerTest is Test {
         assertEq(univ3.balanceOf(charlie), 3);
         assertEq(univ3.ownerOf(tokenId), address(univ3Reserve));
         assertEq(univ3Reserve.balanceOf(charlie), 1);
-        assertEq(univ3Reserve.accountCollateral(charlie, 1e18), 1e18);
-        assertEq(wethReserve.accountBorrowing(charlie, 1e18), 1e17);
+        assertEq(univ3Reserve.accountCollateral(charlie), 1e18);
+        assertEq(wethReserve.accountBorrowing(charlie), 1e17);
     }
 }

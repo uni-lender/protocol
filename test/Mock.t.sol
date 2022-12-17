@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "../src/Oracle.sol";
 
 contract MockERC20 is ERC20 {
     constructor(
@@ -26,7 +27,7 @@ contract MockERC721 is ERC721 {
     }
 }
 
-contract MockOracle {
+contract MockOracle is IOracle {
     mapping(address => uint256) private assetPrices;
 
     function getPrice(address asset) public view returns (uint256) {
@@ -35,5 +36,10 @@ contract MockOracle {
 
     function setPrice(address asset, uint256 price) public {
         assetPrices[asset] = price;
+    }
+
+    function getAtomicPrice(address asset, uint256 tokenId) public view returns (uint256) {
+        
+        return 1e18;
     }
 }

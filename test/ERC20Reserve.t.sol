@@ -11,11 +11,9 @@ contract ERC20ReserveTest is Test {
     ERC20Reserve public reserve;
     MockERC20 public underlying;
 
-    /* function setUp() public { */
-    /*     alice = makeAddr("alice"); */
-    /*     underlying = new MockERC20("Mock ERC20", "M20"); */
-    /*     underlying.mint(alice, 1e20); */
-
-    /*     reserve = new ERC20Reserve("Reserve M20", "RM20", address(underlying), ); */
-    /* } */
+    function setUp() public {
+        alice = makeAddr("alice");
+        underlying = new MockERC20("Mock ERC20", "M20");
+        underlying.mint(alice, 1e20);
+    }
 }

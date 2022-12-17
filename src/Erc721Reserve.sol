@@ -61,14 +61,23 @@ contract ERC721Reserve is
     }
 
     function accountCollateral(
-        address account,
-        uint256 underlyingPrice
+        address account
     ) external view returns (uint256) {
+        uint256 accountCollateral;
         uint256 balance = balanceOf(account);
         console.log("account:", account);
         console.log("ERC721 balance:", balance);
-        console.log("price:", underlyingPrice);
-        return balance * underlyingPrice;
+        for (uint256 i = 0; i < balance; i++) {
+            uint256 tokenId = tokenOfOwnerByIndex(account, i);
+            uint256 underlyingPriceMantissa = oracle.getAtomicPrice(
+                underlying,
+                tokenId
+            );
+            accountCollateral += underlyingPriceMantissa;
+            console.log("price:", i, underlyingPriceMantissa);
+        }
+        console.log("accountCollateral:", accountCollateral);
+        return accountCollateral;
     }
 
     function getUnderlying() external view returns (address) {
