@@ -59,6 +59,7 @@ contract ControllerTest is Test {
 
         // list market
         controller.listLendingMarket(address(wethReserve));
+        controller.listLendingMarket(address(univ3Reserve));
         controller.listBorrowingMarket(address(wethReserve));
 
         // init oracle
@@ -140,5 +141,21 @@ contract ControllerTest is Test {
         assertEq(wethReserve.balanceOf(bob), 1e19);
         assertEq(wethReserve.accountCollateral(bob, 1e18), 1e19);
         assertEq(wethReserve.accountBorrowing(bob, 1e18), 1e18);
+
+        uint256 tokenId = 4;
+        univ3.mint(charlie, 4);
+        univ3.mint(charlie, 5);
+        univ3.mint(charlie, 6);
+        univ3.mint(charlie, 7);
+        vm.startPrank(charlie);
+        univ3.approve(address(univ3Reserve), tokenId);
+        univ3Reserve.supply(tokenId);
+        wethReserve.borrow(1e17);
+        vm.stopPrank();
+        assertEq(univ3.balanceOf(charlie), 3);
+        assertEq(univ3.ownerOf(tokenId), address(univ3Reserve));
+        assertEq(univ3Reserve.balanceOf(charlie), 1);
+        assertEq(univ3Reserve.accountCollateral(charlie, 1e18), 1e18);
+        assertEq(wethReserve.accountBorrowing(charlie, 1e18), 1e17);
     }
 }
