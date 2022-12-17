@@ -42,14 +42,16 @@ contract DeployScript is Script {
             "Reserve Wrapped ETH",
             "RWETH",
             address(weth),
-            address(controller)
+            address(controller),
+            address(oracle)
         );
 
         // init univ3 market
         univ3Reserve = new ERC721Reserve(
-            address(univ3),
             "Reserve Uniswap v3 LP",
-            "RUV3LP"
+            "RUV3LP",
+            address(univ3),
+            address(oracle)
         );
 
         // list market

@@ -4,24 +4,34 @@ pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {IReserve} from "./IReserve.sol";
+import "./Oracle.sol";
 
 import "forge-std/console.sol";
 
-contract ERC721Reserve is IReserve, ERC721, ERC721Enumerable, IERC721Receiver, Ownable {
-    /**
-     * @notice Underlying asset for this Reserve
-     */
+contract ERC721Reserve is
+    IReserve,
+    ERC721,
+    ERC721Enumerable,
+    IERC721Receiver,
+    Ownable
+{
+    // Price oracle
+    Oracle public oracle;
+    // Underlying asset for this Reserve
     address public underlying;
 
     constructor(
-        address underlying_,
         string memory name_,
-        string memory symbol_
+        string memory symbol_,
+        address underlying_,
+        address oracle_
     ) ERC721(name_, symbol_) {
         underlying = underlying_;
+        oracle = Oracle(oracle_);
     }
 
     function supply(uint256 tokenId) external returns (uint256) {
@@ -90,7 +100,16 @@ contract ERC721Reserve is IReserve, ERC721, ERC721Enumerable, IERC721Receiver, O
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(ERC721, ERC721Enumerable) returns (bool) {
-        return super.supportsInterface(interfaceId);
+    )
+        public
+        view
+        virtual
+        override(IERC165, ERC721, ERC721Enumerable)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IReserve).interfaceId ||
+            interfaceId == type(IERC165).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

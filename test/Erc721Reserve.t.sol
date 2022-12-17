@@ -5,11 +5,13 @@ import "forge-std/Test.sol";
 import "forge-std/console.sol";
 import "../src/ERC721Reserve.sol";
 import {MockERC721} from "./Mock.t.sol";
+import "../src/Oracle.sol";
 
 contract Erc721ReserveTest is Test {
     address public alice;
     ERC721Reserve public reserve;
     MockERC721 public underlying;
+    Oracle public oracle;
 
     function setUp() public {
         alice = makeAddr("alice");
@@ -22,9 +24,10 @@ contract Erc721ReserveTest is Test {
         underlying.mint(alice, 3);
 
         reserve = new ERC721Reserve(
-            address(underlying),
             "Reserve MNFT",
-            "RMNFT"
+            "RMNFT",
+            address(underlying),
+            address(oracle)
         );
     }
 

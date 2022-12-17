@@ -8,4 +8,9 @@ contract Oracle {
         asset;
         return 1e18;
     }
+    
+    function getAtomicPrice(address asset, uint256 tokenId) public view returns (uint256) {
+        
+        return 1e18;
+    }
 }

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-interface IReserve {
+import "@openzeppelin/contracts/interfaces/IERC165.sol";
+
+interface IReserve is IERC165 {
     function accountCollateral(
         address account,
         uint256 underlyingPrice

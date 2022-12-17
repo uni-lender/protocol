@@ -42,7 +42,8 @@ contract ControllerTest is Test {
             "Reserve Wrapped ETH",
             "RWETH",
             address(weth),
-            address(controller)
+            address(controller),
+            address(oracle)
         );
 
         // init univ3 market
@@ -52,9 +53,10 @@ contract ControllerTest is Test {
         univ3.mint(alice, 2);
         univ3.mint(alice, 3);
         univ3Reserve = new ERC721Reserve(
-            address(univ3),
             "Reserve Uniswap v3 LP",
-            "RUV3LP"
+            "RUV3LP",
+            address(univ3),
+            address(oracle)
         );
 
         // list market

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./Oracle.sol";
 import {IReserve, IBorrowable} from "./IReserve.sol";
 
@@ -10,14 +11,10 @@ contract Controller {
     Oracle public oracle;
     uint256 public closeFactorMantissa;
     uint256 public liquidationIncentiveMantissa;
-    // Mapping from reserve to market metadata.
-    /* mapping(address => Market) public markets; */
     address[] public lendingMarkets;
     address[] public borrowMarkets;
 
-    constructor(
-        address oracle_
-    ) {
+    constructor(address oracle_) {
         oracle = Oracle(oracle_);
     }
 
@@ -38,7 +35,7 @@ contract Controller {
         uint256 redeemAmount
     ) external view returns (bool) {
         uint256 priceMantissa = getUnderlyingPrice(reserve);
-        uint256 redeemEffects = redeemAmount * priceMantissa / 1e18;
+        uint256 redeemEffects = (redeemAmount * priceMantissa) / 1e18;
         uint256 liquidity = getAccountLiquidity(redeemer);
 
         console.log("priceMantissa:", priceMantissa);
@@ -58,7 +55,7 @@ contract Controller {
         uint256 borrowAmount
     ) external view returns (bool) {
         uint256 priceMantissa = getUnderlyingPrice(reserve);
-        uint256 borrowEffects = borrowAmount * priceMantissa / 1e18;
+        uint256 borrowEffects = (borrowAmount * priceMantissa) / 1e18;
         uint256 liquidity = getAccountLiquidity(borrower);
 
         console.log("priceMantissa:", priceMantissa);
@@ -85,7 +82,14 @@ contract Controller {
 
     function getUnderlyingPrice(address reserve) public view returns (uint256) {
         address underlying = IReserve(reserve).getUnderlying();
-        return oracle.getPrice(underlying);
+        bool isERC20 = IReserve(reserve).supportsInterface(
+            type(IERC20).interfaceId
+        );
+        if (isERC20) {
+            return oracle.getPrice(underlying);
+        } else {
+            return oracle.getPrice(underlying);
+        }
     }
 
     function getAccountLiquidity(
@@ -97,15 +101,19 @@ contract Controller {
         for (uint256 i = 0; i < lendingMarkets.length; i++) {
             address reserve = lendingMarkets[i];
             uint256 underlyingPrice = getUnderlyingPrice(reserve);
-            uint256 accountCollateral = IReserve(reserve)
-                .accountCollateral(account, underlyingPrice);
+            uint256 accountCollateral = IReserve(reserve).accountCollateral(
+                account,
+                underlyingPrice
+            );
             totalCollateral += accountCollateral;
         }
         for (uint256 i = 0; i < borrowMarkets.length; i++) {
             address reserve = borrowMarkets[i];
             uint256 underlyingPrice = getUnderlyingPrice(reserve);
-            uint256 accountBorrowing = IBorrowable(reserve)
-                .accountBorrowing(account, underlyingPrice);
+            uint256 accountBorrowing = IBorrowable(reserve).accountBorrowing(
+                account,
+                underlyingPrice
+            );
             totalBorrowing += accountBorrowing;
         }
 
