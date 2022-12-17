@@ -14,6 +14,10 @@ import {MockOracle} from "./Mock.t.sol";
 
 contract ControllerTest is Test {
     address public alice;
+    address public bob;
+    address public charlie;
+    address public dave;
+
     MockERC20 public weth;
     MockERC721 public univ3;
     ERC20Reserve public wethReserve;
@@ -23,16 +27,22 @@ contract ControllerTest is Test {
 
     function setUp() public {
         alice = makeAddr("alice");
+        bob = makeAddr("bob");
+        charlie = makeAddr("charlie");
+        dave = makeAddr("dave");
         oracle = new MockOracle();
         controller = new Controller(address(oracle));
 
         // init weth market
         weth = new MockERC20("Wrapped ETH", "WETH");
         weth.mint(alice, 1e20);
+        weth.mint(bob, 1e20);
+        weth.mint(charlie, 1e20);
         wethReserve = new ERC20Reserve(
-            address(weth),
             "Reserve Wrapped ETH",
-            "RWETH"
+            "RWETH",
+            address(weth),
+            address(controller)
         );
 
         // init univ3 market
@@ -89,5 +99,46 @@ contract ControllerTest is Test {
             controller.redeemAllowed(address(wethReserve), alice, 1e18),
             false
         );
+    }
+
+    function testSupply() public {
+        assertEq(weth.balanceOf(alice), 1e20);
+        uint256 amount = 1e18;
+        vm.startPrank(alice);
+        weth.approve(address(wethReserve), 1e20);
+        wethReserve.supply(amount);
+        vm.stopPrank();
+        assertEq(weth.balanceOf(alice), 99e18);
+        assertEq(wethReserve.balanceOf(alice), 1e18);
+    }
+
+    function testRedeem() public {
+        vm.startPrank(alice);
+        weth.approve(address(wethReserve), 1e20);
+        wethReserve.supply(1e18);
+        wethReserve.redeem(5e17);
+        vm.stopPrank();
+        assertEq(weth.balanceOf(alice), 995e17);
+        assertEq(wethReserve.balanceOf(alice), 5e17);
+    }
+
+    function testBorrow() public {
+        vm.startPrank(alice);
+        weth.approve(address(wethReserve), 1e20);
+        wethReserve.supply(1e18);
+        vm.stopPrank();
+
+        vm.startPrank(bob);
+        weth.approve(address(wethReserve), 1e20);
+        wethReserve.supply(1e19);
+        wethReserve.borrow(1e18);
+        vm.stopPrank();
+
+        assertEq(weth.balanceOf(alice), 99e18);
+        assertEq(weth.balanceOf(bob), 91e18);
+        assertEq(wethReserve.balanceOf(alice), 1e18);
+        assertEq(wethReserve.balanceOf(bob), 1e19);
+        assertEq(wethReserve.accountCollateral(bob, 1e18), 1e19);
+        assertEq(wethReserve.accountBorrowing(bob, 1e18), 1e18);
     }
 }
