@@ -43,7 +43,8 @@ contract DeployScript is Script {
             "RWETH",
             address(weth),
             address(controller),
-            address(oracle)
+            address(oracle),
+            8e17
         );
 
         // init univ3 market
@@ -51,7 +52,8 @@ contract DeployScript is Script {
             "Reserve Uniswap v3 LP",
             "RUV3LP",
             address(univ3),
-            address(oracle)
+            address(oracle),
+            8e17
         );
 
         // list market

@@ -19,19 +19,20 @@ contract ERC721Reserve is
     IERC721Receiver,
     Ownable
 {
-    // Price oracle
     Oracle public oracle;
-    // Underlying asset for this Reserve
     address public underlying;
+    uint256 public collateralFactor;
 
     constructor(
         string memory name_,
         string memory symbol_,
         address underlying_,
-        address oracle_
+        address oracle_,
+        uint256 collateralFactor_
     ) ERC721(name_, symbol_) {
         underlying = underlying_;
         oracle = Oracle(oracle_);
+        collateralFactor = collateralFactor_;
     }
 
     function supply(uint256 tokenId) external returns (uint256) {

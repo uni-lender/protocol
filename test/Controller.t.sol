@@ -43,7 +43,8 @@ contract ControllerTest is Test {
             "RWETH",
             address(weth),
             address(controller),
-            address(oracle)
+            address(oracle),
+            8e17
         );
 
         // init univ3 market
@@ -56,7 +57,8 @@ contract ControllerTest is Test {
             "Reserve Uniswap v3 LP",
             "RUV3LP",
             address(univ3),
-            address(oracle)
+            address(oracle),
+            8e17
         );
 
         // list market
@@ -131,7 +133,7 @@ contract ControllerTest is Test {
         assertEq(weth.balanceOf(bob), 91e18);
         assertEq(wethReserve.supplyBalanceOf(alice), 1e18);
         assertEq(wethReserve.supplyBalanceOf(bob), 1e19);
-        assertEq(wethReserve.accountCollateral(bob), 1e19);
+        assertEq(wethReserve.accountCollateral(bob), 1e19 * 8e17 / 1e18);
         assertEq(wethReserve.accountBorrowing(bob), 1e18);
 
         uint256 tokenId = 4;

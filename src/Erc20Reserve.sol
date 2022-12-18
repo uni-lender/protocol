@@ -35,14 +35,16 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     uint256 public kinkUtilization;
     uint256 public totalBorrow;
 
-    uint public accrualBlockNumber;
+    uint256 public accrualBlockNumber;
+    uint256 public collateralFactor;
 
     constructor(
         string memory name_,
         string memory symbol_,
         address underlying_,
         address controller_,
-        address oracle_
+        address oracle_,
+        uint256 collateralFactor_
     ) ERC20(name_, symbol_) {
         exchangeRate = INIT_EXCHANGE_RATE;
         borrowIndex = 1e18;
@@ -54,6 +56,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         controller = Controller(controller_);
         oracle = Oracle(oracle_);
         accrualBlockNumber = block.number;
+        collateralFactor = collateralFactor_;
     }
 
     function utilization() public view returns (uint256) {
@@ -234,7 +237,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         console.log("account:", account);
         console.log("balance:", balance);
         console.log("price:", underlyingPriceMantissa);
-        return (balance * underlyingPriceMantissa) / 1e18;
+        return (balance * collateralFactor * underlyingPriceMantissa) / 1e18 / 1e18;
     }
 
     function accountBorrowing(address account) external view returns (uint256) {

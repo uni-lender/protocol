@@ -27,7 +27,8 @@ contract Erc721ReserveTest is Test {
             "Reserve MNFT",
             "RMNFT",
             address(underlying),
-            address(oracle)
+            address(oracle),
+            8e17
         );
     }
 
