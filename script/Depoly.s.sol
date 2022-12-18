@@ -11,21 +11,24 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 contract DeployScript is Script {
-    address public alice;
-    /* address public bob; */
-    /* address public charlie; */
-    /* address public dave; */
-
     IERC20 public weth;
+    IERC20 public wbtc;
+    IERC20 public dai;
+    IERC20 public usdc;
     IERC721 public univ3;
     ERC20Reserve public wethReserve;
+    ERC20Reserve public wbtcReserve;
+    ERC20Reserve public daiReserve;
+    ERC20Reserve public usdcReserve;
     ERC721Reserve public univ3Reserve;
     MockOracle public oracle;
     Controller public controller;
 
     function setUp() public {
-        alice = vm.addr(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
         weth = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+        wbtc = IERC20(0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599);
+        dai = IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F);
+        usdc = IERC20(0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48);
         univ3 = IERC721(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     }
 
@@ -35,7 +38,6 @@ contract DeployScript is Script {
         oracle = new MockOracle();
         controller = new Controller(address(oracle));
 
-        // init weth market
         wethReserve = new ERC20Reserve(
             "Reserve Wrapped ETH",
             "RWETH",
@@ -44,8 +46,30 @@ contract DeployScript is Script {
             address(oracle),
             8e17
         );
-
-        // init univ3 market
+        wbtcReserve = new ERC20Reserve(
+            "Reserve Wrapped BTC",
+            "RWBTC",
+            address(wbtc),
+            address(controller),
+            address(oracle),
+            8e17
+        );
+        daiReserve = new ERC20Reserve(
+            "Reserve DAI",
+            "RDAI",
+            address(dai),
+            address(controller),
+            address(oracle),
+            8e17
+        );
+        usdcReserve = new ERC20Reserve(
+            "Reserve USDC",
+            "RUSDC",
+            address(usdc),
+            address(controller),
+            address(oracle),
+            8e17
+        );
         univ3Reserve = new ERC721Reserve(
             "Reserve Uniswap v3 LP",
             "RUV3LP",
@@ -54,14 +78,21 @@ contract DeployScript is Script {
             8e17
         );
 
-        // list market
         controller.listLendingMarket(address(wethReserve));
+        controller.listLendingMarket(address(wbtcReserve));
+        controller.listLendingMarket(address(daiReserve));
+        controller.listLendingMarket(address(usdcReserve));
         controller.listLendingMarket(address(univ3Reserve));
-        controller.listBorrowingMarket(address(wethReserve));
 
-        // init oracle
+        controller.listBorrowingMarket(address(wethReserve));
+        controller.listBorrowingMarket(address(wbtcReserve));
+        controller.listBorrowingMarket(address(daiReserve));
+        controller.listBorrowingMarket(address(usdcReserve));
+
         oracle.setPrice(address(weth), 1e18);
-        oracle.setPrice(address(univ3), 1e18);
+        oracle.setPrice(address(wbtc), 14122000170000000000);
+        oracle.setPrice(address(dai), 842195727011508);
+        oracle.setPrice(address(usdc), 843573526469612);
 
         vm.stopBroadcast();
     }

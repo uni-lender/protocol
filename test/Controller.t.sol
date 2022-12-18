@@ -68,7 +68,6 @@ contract ControllerTest is Test {
 
         // init oracle
         oracle.setPrice(address(weth), 1e18);
-        oracle.setPrice(address(univ3), 1e18);
     }
 
     function testWithdrawAllowed() public {
