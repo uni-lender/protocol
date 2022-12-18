@@ -20,8 +20,20 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     address public underlying;
     // Protocol controller
     Controller public controller;
+
+    struct BorrowSnapshot {
+        uint256 principal;
+        uint256 interestIndex;
+    }
     // Mapping from account address to outstanding borrow balances
-    mapping(address => uint256) public accountBorrows;
+    mapping(address => BorrowSnapshot) public accountBorrows;
+    uint256 public exchangeRate;
+    uint256 public borrowIndex;
+    uint256 public baseRate;
+    uint256 public kinkRate;
+    uint256 public fullRate;
+    uint256 public kinkUtilization;
+    uint256 public totalBorrow;
 
     constructor(
         string memory name_,
@@ -30,21 +42,66 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         address controller_,
         address oracle_
     ) ERC20(name_, symbol_) {
+        exchangeRate = 2e16;
+        borrowIndex = 1e18;
+        baseRate = 2e16;
+        kinkRate = 1e17;
+        fullRate = 5e17;
+        kinkUtilization = 8e17;
         underlying = underlying_;
         controller = Controller(controller_);
         oracle = Oracle(oracle_);
     }
 
-    function supply(uint256 amount) external returns (uint256) {
-        /* console.log("underlying:", underlying); */
-        /* console.log("msg.sender:", msg.sender); */
-        /* console.log( */
-        /*     "sender's balance:", */
-        /*     IERC20(underlying).balanceOf(msg.sender) */
-        /* ); */
+    function utilization() public view returns (uint256) {
+        // totalBorrow / (totalBorrow + totalCash)
+        uint256 totalCash = IERC20(underlying).balanceOf(address(this));
+        console.log("totalCash:", totalCash);
+        console.log("totalBorrow:", totalBorrow);
+        return totalBorrow / (totalBorrow + totalCash);
+    }
 
+    function nextExchangeRate() public view returns (uint256) {
+        // (totalBorrow + totalCash) / totalSupply
+        uint256 totalCash = IERC20(underlying).balanceOf(address(this));
+        return (totalBorrow + totalCash) / totalSupply();
+    }
+
+    function borrowBalanceOf(address account) public view returns (uint256) {
+        BorrowSnapshot storage borrowSnapshot = accountBorrows[account];
+        if (borrowSnapshot.principal == 0) {
+            return 0;
+        }
+        return (borrowSnapshot.principal * borrowIndex) / borrowSnapshot.interestIndex;
+    }
+
+    function supplyBalanceOf(address account) public view returns (uint256) {
+        uint256 reserveBalance = balanceOf(account);
+        return reserveBalance * exchangeRate / 1e18;
+    }
+
+    function borrowAPY() public view returns (uint256) {
+        uint256 util = utilization();
+        if (util <= kinkUtilization) {
+            return util * (kinkRate - baseRate) / kinkUtilization + baseRate;
+        } else {
+            uint256 excessUtil = util - kinkUtilization;
+            return excessUtil * (fullRate - kinkRate) / (1e18 - kinkUtilization) + kinkRate;
+        }
+    }
+
+    function supplyAPY() public view returns (uint256) {
+        return borrowAPY() * utilization() / 1e18;
+    }
+
+    function accrueInterest() public returns (uint256) {
+        
+    }
+
+    function supply(uint256 amount) external returns (uint256) {
         IERC20(underlying).safeTransferFrom(msg.sender, address(this), amount);
-        _mint(msg.sender, amount);
+        uint256 mintAmount = amount * 1e18 / exchangeRate;
+        _mint(msg.sender, mintAmount);
 
         return 0;
     }
@@ -61,14 +118,15 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
             "ERC20Reserve: insufficient liquidity"
         );
         require(
-            balanceOf(account) >= amount,
+            supplyBalanceOf(account) >= amount,
             "ERC20Reserve: redeem transfer amount exceeds position"
         );
     }
 
     function withdraw(uint256 amount) external returns (uint256) {
         withdrawAllowed(msg.sender, amount);
-        _burn(msg.sender, amount);
+        uint256 burnAmount = amount * 1e18 / exchangeRate;
+        _burn(msg.sender, burnAmount);
         IERC20(underlying).safeTransfer(msg.sender, amount);
 
         return 0;
@@ -89,26 +147,25 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
 
     function borrow(uint256 amount) external returns (uint256) {
         borrowAllowed(msg.sender, amount);
-        accountBorrows[msg.sender] += amount;
+        uint256 borrowBalance = borrowBalanceOf(msg.sender);
+        accountBorrows[msg.sender].principal = borrowBalance + amount;
+        accountBorrows[msg.sender].interestIndex = borrowIndex;
         IERC20(underlying).safeTransfer(msg.sender, amount);
 
         return 0;
     }
 
     function repay(uint256 amount) external returns (uint256) {
-        uint256 borrowBalance = accountBorrows[msg.sender];
+        uint256 borrowBalance = borrowBalanceOf(msg.sender);
         require(
             amount <= borrowBalance,
             "ERC20Reserve: insufficient borrow balance"
         );
-        accountBorrows[msg.sender] -= amount;
+        accountBorrows[msg.sender].principal = borrowBalance - amount;
+        accountBorrows[msg.sender].interestIndex = borrowIndex;
         IERC20(underlying).safeTransferFrom(msg.sender, address(this), amount);
 
         return 0;
-    }
-
-    function getUnderlying() external view returns (address) {
-        return underlying;
     }
 
     function getUnderlyingPrice() public view returns (uint256) {
@@ -118,7 +175,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     function accountCollateral(
         address account
     ) external view returns (uint256) {
-        uint256 balance = balanceOf(account);
+        uint256 balance = supplyBalanceOf(account);
         uint256 underlyingPriceMantissa = getUnderlyingPrice();
         console.log("account:", account);
         console.log("balance:", balance);
@@ -127,7 +184,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     }
 
     function accountBorrowing(address account) external view returns (uint256) {
-        uint256 borrowBalance = accountBorrows[account];
+        uint256 borrowBalance = borrowBalanceOf(account);
         uint256 underlyingPriceMantissa = getUnderlyingPrice();
         return (borrowBalance * underlyingPriceMantissa) / 1e18;
     }

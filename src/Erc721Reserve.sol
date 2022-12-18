@@ -80,10 +80,6 @@ contract ERC721Reserve is
         return accountCollateral;
     }
 
-    function getUnderlying() external view returns (address) {
-        return underlying;
-    }
-
     function onERC721Received(
         address operator,
         address from,

@@ -13,8 +13,12 @@ interface IOracle {
 }
 
 contract Oracle is IOracle {
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+
     function getPrice(address asset) external view returns (uint256) {
-        asset;
+        if (asset == WETH) {
+            return 1e18;
+        }
         return 1e18;
     }
 

@@ -76,7 +76,7 @@ contract ControllerTest is Test {
         wethReserve.withdraw(5e17);
         vm.stopPrank();
         assertEq(weth.balanceOf(alice), 995e17);
-        assertEq(wethReserve.balanceOf(alice), 5e17);
+        assertEq(wethReserve.supplyBalanceOf(alice), 5e17);
         wethReserve.withdrawAllowed(alice, 1e10);
         vm.expectRevert("ERC20Reserve: insufficient liquidity");
         wethReserve.withdrawAllowed(alice, 1e18);
@@ -88,7 +88,7 @@ contract ControllerTest is Test {
         wethReserve.supply(1e18);
         vm.stopPrank();
         assertEq(weth.balanceOf(alice), 99e18);
-        assertEq(wethReserve.balanceOf(alice), 1e18);
+        assertEq(wethReserve.supplyBalanceOf(alice), 1e18);
         wethReserve.borrowAllowed(alice, 1e10);
         vm.expectRevert("ERC20Reserve: insufficient liquidity");
         wethReserve.borrowAllowed(alice, 1e18);
@@ -102,7 +102,7 @@ contract ControllerTest is Test {
         wethReserve.supply(amount);
         vm.stopPrank();
         assertEq(weth.balanceOf(alice), 99e18);
-        assertEq(wethReserve.balanceOf(alice), 1e18);
+        assertEq(wethReserve.supplyBalanceOf(alice), 1e18);
     }
 
     function testWithdraw() public {
@@ -112,7 +112,7 @@ contract ControllerTest is Test {
         wethReserve.withdraw(5e17);
         vm.stopPrank();
         assertEq(weth.balanceOf(alice), 995e17);
-        assertEq(wethReserve.balanceOf(alice), 5e17);
+        assertEq(wethReserve.supplyBalanceOf(alice), 5e17);
     }
 
     function testBorrow() public {
@@ -129,8 +129,8 @@ contract ControllerTest is Test {
 
         assertEq(weth.balanceOf(alice), 99e18);
         assertEq(weth.balanceOf(bob), 91e18);
-        assertEq(wethReserve.balanceOf(alice), 1e18);
-        assertEq(wethReserve.balanceOf(bob), 1e19);
+        assertEq(wethReserve.supplyBalanceOf(alice), 1e18);
+        assertEq(wethReserve.supplyBalanceOf(bob), 1e19);
         assertEq(wethReserve.accountCollateral(bob), 1e19);
         assertEq(wethReserve.accountBorrowing(bob), 1e18);
 
