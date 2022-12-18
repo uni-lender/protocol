@@ -14,11 +14,11 @@ import "forge-std/console.sol";
 
 contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     using SafeERC20 for IERC20;
-    // Price oracle
+    uint256 public constant SECONDS_PER_BLOCK = 15;
+    uint256 public constant SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
+    uint256 public constant INIT_EXCHANGE_RATE = 2e16;
     Oracle public oracle;
-    // Underlying asset for this Reserve
     address public underlying;
-    // Protocol controller
     Controller public controller;
 
     struct BorrowSnapshot {
@@ -35,6 +35,8 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     uint256 public kinkUtilization;
     uint256 public totalBorrow;
 
+    uint public accrualBlockNumber;
+
     constructor(
         string memory name_,
         string memory symbol_,
@@ -42,7 +44,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         address controller_,
         address oracle_
     ) ERC20(name_, symbol_) {
-        exchangeRate = 2e16;
+        exchangeRate = INIT_EXCHANGE_RATE;
         borrowIndex = 1e18;
         baseRate = 2e16;
         kinkRate = 1e17;
@@ -51,6 +53,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         underlying = underlying_;
         controller = Controller(controller_);
         oracle = Oracle(oracle_);
+        accrualBlockNumber = block.number;
     }
 
     function utilization() public view returns (uint256) {
@@ -58,13 +61,10 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         uint256 totalCash = IERC20(underlying).balanceOf(address(this));
         console.log("totalCash:", totalCash);
         console.log("totalBorrow:", totalBorrow);
+        if (totalBorrow == 0) {
+            return 0;
+        }
         return totalBorrow / (totalBorrow + totalCash);
-    }
-
-    function nextExchangeRate() public view returns (uint256) {
-        // (totalBorrow + totalCash) / totalSupply
-        uint256 totalCash = IERC20(underlying).balanceOf(address(this));
-        return (totalBorrow + totalCash) / totalSupply();
     }
 
     function borrowBalanceOf(address account) public view returns (uint256) {
@@ -72,35 +72,82 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         if (borrowSnapshot.principal == 0) {
             return 0;
         }
-        return (borrowSnapshot.principal * borrowIndex) / borrowSnapshot.interestIndex;
+        return
+            (borrowSnapshot.principal * borrowIndex) /
+            borrowSnapshot.interestIndex;
     }
 
     function supplyBalanceOf(address account) public view returns (uint256) {
         uint256 reserveBalance = balanceOf(account);
-        return reserveBalance * exchangeRate / 1e18;
+        return (reserveBalance * exchangeRate) / 1e18;
     }
 
     function borrowAPY() public view returns (uint256) {
         uint256 util = utilization();
         if (util <= kinkUtilization) {
-            return util * (kinkRate - baseRate) / kinkUtilization + baseRate;
+            return (util * (kinkRate - baseRate)) / kinkUtilization + baseRate;
         } else {
             uint256 excessUtil = util - kinkUtilization;
-            return excessUtil * (fullRate - kinkRate) / (1e18 - kinkUtilization) + kinkRate;
+            return
+                (excessUtil * (fullRate - kinkRate)) /
+                (1e18 - kinkUtilization) +
+                kinkRate;
         }
     }
 
     function supplyAPY() public view returns (uint256) {
-        return borrowAPY() * utilization() / 1e18;
+        return (borrowAPY() * utilization()) / 1e18;
     }
 
-    function accrueInterest() public returns (uint256) {
-        
+    function incrementIndex(
+        uint256 borrowRate,
+        uint256 index,
+        uint256 deltaBlock
+    ) internal returns (uint256) {
+        return
+            (borrowRate * index * deltaBlock * SECONDS_PER_BLOCK) /
+            SECONDS_PER_YEAR /
+            1e18;
+    }
+
+    function interestAccumulated(
+        uint256 borrowRate,
+        uint256 amount,
+        uint256 deltaBlock
+    ) internal returns (uint256) {
+        return
+            (borrowRate * amount * deltaBlock * SECONDS_PER_BLOCK) /
+            SECONDS_PER_YEAR /
+            1e18;
+    }
+
+    function nextExchangeRate() internal view returns (uint256) {
+        // (totalBorrow + totalCash) / totalSupply
+        uint256 totalCash = IERC20(underlying).balanceOf(address(this));
+        uint256 totalSupply = totalSupply();
+        if (totalSupply == 0) {
+            return INIT_EXCHANGE_RATE;
+        }
+        return ((totalBorrow + totalCash) * 1e18) / totalSupply;
+    }
+
+    function accrueInterest() public {
+        uint256 currentBlockNumber = getBlockNumber();
+        if (accrualBlockNumber == currentBlockNumber) {
+            return;
+        }
+        uint256 deltaBlock = currentBlockNumber - accrualBlockNumber;
+        uint256 borrowAPY = borrowAPY();
+        totalBorrow += interestAccumulated(borrowAPY, totalBorrow, deltaBlock);
+        borrowIndex += incrementIndex(borrowAPY, borrowIndex, deltaBlock);
+        exchangeRate = nextExchangeRate();
+        accrualBlockNumber = currentBlockNumber;
     }
 
     function supply(uint256 amount) external returns (uint256) {
+        accrueInterest();
         IERC20(underlying).safeTransferFrom(msg.sender, address(this), amount);
-        uint256 mintAmount = amount * 1e18 / exchangeRate;
+        uint256 mintAmount = (amount * 1e18) / exchangeRate;
         _mint(msg.sender, mintAmount);
 
         return 0;
@@ -124,8 +171,9 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     }
 
     function withdraw(uint256 amount) external returns (uint256) {
+        accrueInterest();
         withdrawAllowed(msg.sender, amount);
-        uint256 burnAmount = amount * 1e18 / exchangeRate;
+        uint256 burnAmount = (amount * 1e18) / exchangeRate;
         _burn(msg.sender, burnAmount);
         IERC20(underlying).safeTransfer(msg.sender, amount);
 
@@ -146,6 +194,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     }
 
     function borrow(uint256 amount) external returns (uint256) {
+        accrueInterest();
         borrowAllowed(msg.sender, amount);
         uint256 borrowBalance = borrowBalanceOf(msg.sender);
         accountBorrows[msg.sender].principal = borrowBalance + amount;
@@ -156,6 +205,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     }
 
     function repay(uint256 amount) external returns (uint256) {
+        accrueInterest();
         uint256 borrowBalance = borrowBalanceOf(msg.sender);
         require(
             amount <= borrowBalance,
@@ -170,6 +220,10 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
 
     function getUnderlyingPrice() public view returns (uint256) {
         return oracle.getPrice(underlying);
+    }
+
+    function getBlockNumber() internal view returns (uint256) {
+        return block.number;
     }
 
     function accountCollateral(
