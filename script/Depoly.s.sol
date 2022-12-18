@@ -24,9 +24,7 @@ contract DeployScript is Script {
     Controller public controller;
 
     function setUp() public {
-        alice = vm.addr(
-            0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-        );
+        alice = vm.addr(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
         weth = IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
         univ3 = IERC721(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     }

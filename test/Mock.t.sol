@@ -6,10 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "../src/Oracle.sol";
 
 contract MockERC20 is ERC20 {
-    constructor(
-        string memory name_,
-        string memory symbol_
-    ) ERC20(name_, symbol_) {}
+    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) {}
 
     function mint(address to, uint256 amount) public {
         _mint(to, amount);
@@ -17,10 +14,7 @@ contract MockERC20 is ERC20 {
 }
 
 contract MockERC721 is ERC721 {
-    constructor(
-        string memory name_,
-        string memory symbol_
-    ) ERC721(name_, symbol_) {}
+    constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_) {}
 
     function mint(address to, uint256 tokenId) public {
         _safeMint(to, tokenId);
@@ -39,7 +33,6 @@ contract MockOracle is IOracle {
     }
 
     function getAtomicPrice(address asset, uint256 tokenId) public view returns (uint256) {
-        
         return 1e18;
     }
 }

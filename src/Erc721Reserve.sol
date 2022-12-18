@@ -12,13 +12,7 @@ import "./Oracle.sol";
 
 import "forge-std/console.sol";
 
-contract ERC721Reserve is
-    IReserve,
-    ERC721,
-    ERC721Enumerable,
-    IERC721Receiver,
-    Ownable
-{
+contract ERC721Reserve is IReserve, ERC721, ERC721Enumerable, IERC721Receiver, Ownable {
     Oracle public oracle;
     address public underlying;
     uint256 public collateralFactor;
@@ -36,44 +30,28 @@ contract ERC721Reserve is
     }
 
     function supply(uint256 tokenId) external returns (uint256) {
-        IERC721(underlying).safeTransferFrom(
-            msg.sender,
-            address(this),
-            tokenId
-        );
+        IERC721(underlying).safeTransferFrom(msg.sender, address(this), tokenId);
         _safeMint(msg.sender, tokenId);
 
         return 0;
     }
 
     function withdraw(uint256 tokenId) external returns (uint256) {
-        require(
-            ownerOf(tokenId) == msg.sender,
-            "ERC721Reserve: reserve token transfer from incorrect owner"
-        );
+        require(ownerOf(tokenId) == msg.sender, "ERC721Reserve: reserve token transfer from incorrect owner");
         _burn(tokenId);
-        IERC721(underlying).safeTransferFrom(
-            address(this),
-            msg.sender,
-            tokenId
-        );
+        IERC721(underlying).safeTransferFrom(address(this), msg.sender, tokenId);
 
         return 0;
     }
 
-    function accountCollateral(
-        address account
-    ) external view returns (uint256) {
+    function accountCollateral(address account) external view returns (uint256) {
         uint256 accountCollateral;
         uint256 balance = balanceOf(account);
         console.log("account:", account);
         console.log("ERC721 balance:", balance);
         for (uint256 i = 0; i < balance; i++) {
             uint256 tokenId = tokenOfOwnerByIndex(account, i);
-            uint256 underlyingPriceMantissa = oracle.getAtomicPrice(
-                underlying,
-                tokenId
-            );
+            uint256 underlyingPriceMantissa = oracle.getAtomicPrice(underlying, tokenId);
             accountCollateral += underlyingPriceMantissa;
             console.log("price:", i, underlyingPriceMantissa);
         }
@@ -81,12 +59,11 @@ contract ERC721Reserve is
         return accountCollateral;
     }
 
-    function onERC721Received(
-        address operator,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) external pure returns (bytes4) {
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
+        external
+        pure
+        returns (bytes4)
+    {
         operator;
         from;
         tokenId;
@@ -95,27 +72,21 @@ contract ERC721Reserve is
         return this.onERC721Received.selector;
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 batchSize
-    ) internal override(ERC721, ERC721Enumerable) {
+    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
+        internal
+        override (ERC721, ERC721Enumerable)
+    {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    )
+    function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
-        override(IERC165, ERC721, ERC721Enumerable)
+        override (IERC165, ERC721, ERC721Enumerable)
         returns (bool)
     {
-        return
-            interfaceId == type(IReserve).interfaceId ||
-            interfaceId == type(IERC165).interfaceId ||
-            super.supportsInterface(interfaceId);
+        return interfaceId == type(IReserve).interfaceId || interfaceId == type(IERC165).interfaceId
+            || super.supportsInterface(interfaceId);
     }
 }

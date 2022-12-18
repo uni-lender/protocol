@@ -14,6 +14,7 @@ import "forge-std/console.sol";
 
 contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     using SafeERC20 for IERC20;
+
     uint256 public constant SECONDS_PER_BLOCK = 15;
     uint256 public constant SECONDS_PER_YEAR = 365 * 24 * 60 * 60;
     uint256 public constant INIT_EXCHANGE_RATE = 2e16;
@@ -26,6 +27,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         uint256 interestIndex;
     }
     // Mapping from account address to outstanding borrow balances
+
     mapping(address => BorrowSnapshot) public accountBorrows;
     uint256 public exchangeRate;
     uint256 public borrowIndex;
@@ -75,9 +77,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         if (borrowSnapshot.principal == 0) {
             return 0;
         }
-        return
-            (borrowSnapshot.principal * borrowIndex) /
-            borrowSnapshot.interestIndex;
+        return (borrowSnapshot.principal * borrowIndex) / borrowSnapshot.interestIndex;
     }
 
     function supplyBalanceOf(address account) public view returns (uint256) {
@@ -91,10 +91,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
             return (util * (kinkRate - baseRate)) / kinkUtilization + baseRate;
         } else {
             uint256 excessUtil = util - kinkUtilization;
-            return
-                (excessUtil * (fullRate - kinkRate)) /
-                (1e18 - kinkUtilization) +
-                kinkRate;
+            return (excessUtil * (fullRate - kinkRate)) / (1e18 - kinkUtilization) + kinkRate;
         }
     }
 
@@ -102,26 +99,12 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         return (borrowAPY() * utilization()) / 1e18;
     }
 
-    function incrementIndex(
-        uint256 borrowRate,
-        uint256 index,
-        uint256 deltaBlock
-    ) internal returns (uint256) {
-        return
-            (borrowRate * index * deltaBlock * SECONDS_PER_BLOCK) /
-            SECONDS_PER_YEAR /
-            1e18;
+    function incrementIndex(uint256 borrowRate, uint256 index, uint256 deltaBlock) internal returns (uint256) {
+        return (borrowRate * index * deltaBlock * SECONDS_PER_BLOCK) / SECONDS_PER_YEAR / 1e18;
     }
 
-    function interestAccumulated(
-        uint256 borrowRate,
-        uint256 amount,
-        uint256 deltaBlock
-    ) internal returns (uint256) {
-        return
-            (borrowRate * amount * deltaBlock * SECONDS_PER_BLOCK) /
-            SECONDS_PER_YEAR /
-            1e18;
+    function interestAccumulated(uint256 borrowRate, uint256 amount, uint256 deltaBlock) internal returns (uint256) {
+        return (borrowRate * amount * deltaBlock * SECONDS_PER_BLOCK) / SECONDS_PER_YEAR / 1e18;
     }
 
     function nextExchangeRate() internal view returns (uint256) {
@@ -163,14 +146,8 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         console.log("priceMantissa:", priceMantissa);
         console.log("redeemEffects:", redeemEffects);
         console.log("liquidity:", liquidity);
-        require(
-            redeemEffects < liquidity,
-            "ERC20Reserve: insufficient liquidity"
-        );
-        require(
-            supplyBalanceOf(account) >= amount,
-            "ERC20Reserve: redeem transfer amount exceeds position"
-        );
+        require(redeemEffects < liquidity, "ERC20Reserve: insufficient liquidity");
+        require(supplyBalanceOf(account) >= amount, "ERC20Reserve: redeem transfer amount exceeds position");
     }
 
     function withdraw(uint256 amount) external returns (uint256) {
@@ -190,10 +167,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         console.log("priceMantissa:", priceMantissa);
         console.log("borrowEffects:", borrowEffects);
         console.log("liquidity:", liquidity);
-        require(
-            borrowEffects < liquidity,
-            "ERC20Reserve: insufficient liquidity"
-        );
+        require(borrowEffects < liquidity, "ERC20Reserve: insufficient liquidity");
     }
 
     function borrow(uint256 amount) external returns (uint256) {
@@ -210,10 +184,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     function repay(uint256 amount) external returns (uint256) {
         accrueInterest();
         uint256 borrowBalance = borrowBalanceOf(msg.sender);
-        require(
-            amount <= borrowBalance,
-            "ERC20Reserve: insufficient borrow balance"
-        );
+        require(amount <= borrowBalance, "ERC20Reserve: insufficient borrow balance");
         accountBorrows[msg.sender].principal = borrowBalance - amount;
         accountBorrows[msg.sender].interestIndex = borrowIndex;
         IERC20(underlying).safeTransferFrom(msg.sender, address(this), amount);
@@ -229,9 +200,7 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
         return block.number;
     }
 
-    function accountCollateral(
-        address account
-    ) external view returns (uint256) {
+    function accountCollateral(address account) external view returns (uint256) {
         uint256 balance = supplyBalanceOf(account);
         uint256 underlyingPriceMantissa = getUnderlyingPrice();
         console.log("account:", account);
@@ -249,13 +218,8 @@ contract ERC20Reserve is IReserve, IBorrowable, IERC20, ERC20, Ownable {
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view virtual override(IERC165) returns (bool) {
-        return
-            interfaceId == type(IReserve).interfaceId ||
-            interfaceId == type(IBorrowable).interfaceId ||
-            interfaceId == type(IERC20).interfaceId ||
-            interfaceId == type(IERC165).interfaceId;
+    function supportsInterface(bytes4 interfaceId) public view virtual override (IERC165) returns (bool) {
+        return interfaceId == type(IReserve).interfaceId || interfaceId == type(IBorrowable).interfaceId
+            || interfaceId == type(IERC20).interfaceId || interfaceId == type(IERC165).interfaceId;
     }
 }

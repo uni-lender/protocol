@@ -18,24 +18,18 @@ contract Controller {
         oracle = Oracle(oracle_);
     }
 
-    function getAccountLiquidity(
-        address account
-    ) public view returns (uint256) {
+    function getAccountLiquidity(address account) public view returns (uint256) {
         uint256 totalCollateral;
         uint256 totalBorrowing;
 
         for (uint256 i = 0; i < lendingMarkets.length; i++) {
             address reserve = lendingMarkets[i];
-            uint256 accountCollateral = IReserve(reserve).accountCollateral(
-                account
-            );
+            uint256 accountCollateral = IReserve(reserve).accountCollateral(account);
             totalCollateral += accountCollateral;
         }
         for (uint256 i = 0; i < borrowMarkets.length; i++) {
             address reserve = borrowMarkets[i];
-            uint256 accountBorrowing = IBorrowable(reserve).accountBorrowing(
-                account
-            );
+            uint256 accountBorrowing = IBorrowable(reserve).accountBorrowing(account);
             totalBorrowing += accountBorrowing;
         }
 
